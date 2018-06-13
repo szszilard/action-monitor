@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.postgresql.PGNotification;
+import org.sz.action.monitor.listener.dto.ActionMessage;
 import org.sz.action.monitor.publish.ActionMessageSender;
 
 import java.sql.Connection;
@@ -17,13 +18,15 @@ import java.sql.Statement;
 
 import static java.util.Collections.singletonList;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DatabaseListenerTest {
+public class PostgreSqlDatabaseListenerTest {
 
     private static final String TEST_TOPIC_NAME = "testTopicName";
+    public static final String TEST_CHANNEL_NAME = "testChannelName";
 
     @Mock
     private ActionMessageSender mockedActionMessageSender;
@@ -38,7 +41,7 @@ public class DatabaseListenerTest {
     private ResultSet mockedResultSet;
 
 
-    private DatabaseListener databaseListener;
+    private PostgreSqlDatabaseListener databaseListener;
 
     @Before
     public void setUp() throws Exception {
@@ -49,7 +52,7 @@ public class DatabaseListenerTest {
 
     @Test
     public void noMessagesShouldBeSentWhenNoNotificationReceived() throws Exception {
-        databaseListener = spy(new DatabaseListener(mockedConnection, mockedActionMessageSender, TEST_TOPIC_NAME));
+        databaseListener = spy(new PostgreSqlDatabaseListener(mockedConnection, mockedActionMessageSender, TEST_TOPIC_NAME));
         doReturn(null).when(databaseListener).getNotifications();
 
         databaseListener.pollNotifications();
@@ -65,9 +68,9 @@ public class DatabaseListenerTest {
 
     @Test
     public void messageShouldBeSentWhenOneNotificationReceived() throws Exception {
-        databaseListener = spy(new DatabaseListener(mockedConnection, mockedActionMessageSender, TEST_TOPIC_NAME));
+        databaseListener = spy(new PostgreSqlDatabaseListener(mockedConnection, mockedActionMessageSender, TEST_TOPIC_NAME));
         String payload = IOUtils.toString(this.getClass().getResourceAsStream("/insert_notification_payload.json"), "UTF-8");
-        PGNotification[] pgNotifications = singletonList(buildTestNotification("testName", payload)).toArray(new PGNotification[1]);
+        PGNotification[] pgNotifications = singletonList(buildTestNotification(TEST_CHANNEL_NAME, payload)).toArray(new PGNotification[1]);
         doReturn(pgNotifications).when(databaseListener).getNotifications();
 
         databaseListener.pollNotifications();
@@ -77,14 +80,15 @@ public class DatabaseListenerTest {
         verify(mockedStatement, times(1)).executeQuery(anyString());
         verify(mockedStatement, times(2)).close();
         verify(mockedResultSet, times(1)).close();
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<ActionMessage> captor = ArgumentCaptor.forClass(ActionMessage.class);
         verify(mockedActionMessageSender).sendMessageToTopic(captor.capture(), eq(TEST_TOPIC_NAME));
         verifyNoMoreInteractions(mockedConnection, mockedStatement, mockedResultSet, mockedActionMessageSender);
-        String actualMessage = captor.getValue();
-        assertThat(actualMessage, containsString("Timestamp="));
-        assertThat(actualMessage, containsString(":: a row with ID="));
-        assertThat(actualMessage, containsString("10001"));
-        assertThat(actualMessage, containsString("has been inserted"));
+        ActionMessage actualActionMessage = captor.getValue();
+        assertThat(actualActionMessage.getText(), containsString("Timestamp="));
+        assertThat(actualActionMessage.getText(), containsString(":: a row with ID="));
+        assertThat(actualActionMessage.getText(), containsString("10001"));
+        assertThat(actualActionMessage.getText(), containsString("has been inserted"));
+        assertThat(actualActionMessage.getChannel(), is(TEST_CHANNEL_NAME));
     }
 
     private PGNotification buildTestNotification(String name, String parameterAsString) {
