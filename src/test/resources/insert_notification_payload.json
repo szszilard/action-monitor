@@ -1,0 +1,9 @@
+{
+  "type": "insert",
+  "client": {
+    "id": 10001,
+    "name": "John Free",
+    "city": "New York",
+    "age": 43
+  }
+}
