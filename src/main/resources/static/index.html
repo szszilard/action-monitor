@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Action Monitor</title>
+    <script src="angular.min.js"></script>
+    <script src="ng-stomp.standalone.min.js"></script>
+    <script type="text/javascript">
+
+  var app = angular.module('actionMonitorApp', ['ngStomp']);
+  var stompEndpoint = 'http://localhost:8080/action-monitor-stomp-endpoint';
+  var topicName = '/topic/action-monitor';
+
+  app.controller('ActionMonitorController', function ($stomp, $scope) {
+
+      $scope.actions = [];
+      $scope.wsStatus = 'Connecting to' + stompEndpoint + '...';
+      console.log("Connecting to" + stompEndpoint + "...");
+
+      $stomp.connect(stompEndpoint, {})
+            .then(function (frame) {
+            console.log("WebSocket connection established");
+            $scope.wsStatus = 'WebSocket connection established';
+                var subscription = $stomp.subscribe(topicName,
+                    function (payload, headers, res) {
+                        $scope.actions.push(payload);
+                        $scope.$apply($scope.actions);
+                });
+         });
+  });
+
+ </script>
+
+</head>
+<body >
+<div class="actions" ng-app="actionMonitorApp" ng-controller="ActionMonitorController">
+    <p>{{wsStatus}}</p>
+    <ul>
+        <li ng-repeat="action in actions">{{$index+1}}. {{action.text}}</li>
+    </ul>
+</div>
+</body>
+</html>
