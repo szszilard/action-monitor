@@ -6,9 +6,10 @@ import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.AbstractWebSocketMessageBrokerConfigurer;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
+import org.sz.action.monitor.publisher.ActionMessagePublisher;
 
 /**
- * This class provides WebSocket broker configuration for the {@link org.sz.action.monitor.publish.ActionMessageSender interface}.
+ * This class provides WebSocket broker configuration for the {@link ActionMessagePublisher interface}.
  */
 @Configuration
 @EnableWebSocketMessageBroker

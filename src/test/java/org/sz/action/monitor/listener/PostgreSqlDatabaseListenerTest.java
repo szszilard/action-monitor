@@ -1,23 +1,23 @@
 package org.sz.action.monitor.listener;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.runners.MockitoJUnitRunner;
 import org.postgresql.PGNotification;
-import org.sz.action.monitor.listener.dto.ActionMessage;
-import org.sz.action.monitor.publish.ActionMessageSender;
+import org.sz.action.monitor.listener.dto.DbNotification;
+import org.sz.action.monitor.service.dto.ActionNotification;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.*;
@@ -25,11 +25,7 @@ import static org.mockito.Mockito.*;
 @RunWith(MockitoJUnitRunner.class)
 public class PostgreSqlDatabaseListenerTest {
 
-    private static final String TEST_TOPIC_NAME = "testTopicName";
-    public static final String TEST_CHANNEL_NAME = "testChannelName";
-
-    @Mock
-    private ActionMessageSender mockedActionMessageSender;
+    private static final String TEST_CHANNEL_NAME = "testChannelName";
 
     @Mock
     private Connection mockedConnection;
@@ -51,11 +47,11 @@ public class PostgreSqlDatabaseListenerTest {
     }
 
     @Test
-    public void noMessagesShouldBeSentWhenNoNotificationReceived() throws Exception {
-        databaseListener = spy(new PostgreSqlDatabaseListener(mockedConnection, mockedActionMessageSender, TEST_TOPIC_NAME));
+    public void emptyListShouldBeReturnedWhenNoNotificationReceived() throws Exception {
+        databaseListener = spy(new PostgreSqlDatabaseListener(mockedConnection));
         doReturn(null).when(databaseListener).getNotifications();
 
-        databaseListener.pollNotifications();
+        List<ActionNotification> actionNotificationList = databaseListener.pollNotifications();
 
         verify(mockedConnection, times(2)).createStatement();
         verify(mockedStatement, times(1)).executeUpdate(anyString());
@@ -63,32 +59,34 @@ public class PostgreSqlDatabaseListenerTest {
         verify(mockedStatement, times(2)).close();
         verify(mockedResultSet, times(1)).close();
         verifyNoMoreInteractions(mockedConnection, mockedStatement, mockedResultSet);
-        verifyZeroInteractions(mockedActionMessageSender);
+
+        assertThat(actionNotificationList.size(), is(0));
     }
 
     @Test
-    public void messageShouldBeSentWhenOneNotificationReceived() throws Exception {
-        databaseListener = spy(new PostgreSqlDatabaseListener(mockedConnection, mockedActionMessageSender, TEST_TOPIC_NAME));
+    public void singletonListShouldBeReturnedWhenOneNotificationReceived() throws Exception {
+        databaseListener = spy(new PostgreSqlDatabaseListener(mockedConnection));
         String payload = IOUtils.toString(this.getClass().getResourceAsStream("/insert_notification_payload.json"), "UTF-8");
         PGNotification[] pgNotifications = singletonList(buildTestNotification(TEST_CHANNEL_NAME, payload)).toArray(new PGNotification[1]);
         doReturn(pgNotifications).when(databaseListener).getNotifications();
 
-        databaseListener.pollNotifications();
+        List<ActionNotification> actionNotificationList = databaseListener.pollNotifications();
 
         verify(mockedConnection, times(2)).createStatement();
         verify(mockedStatement, times(1)).executeUpdate(anyString());
         verify(mockedStatement, times(1)).executeQuery(anyString());
         verify(mockedStatement, times(2)).close();
         verify(mockedResultSet, times(1)).close();
-        ArgumentCaptor<ActionMessage> captor = ArgumentCaptor.forClass(ActionMessage.class);
-        verify(mockedActionMessageSender).sendMessageToTopic(captor.capture(), eq(TEST_TOPIC_NAME));
-        verifyNoMoreInteractions(mockedConnection, mockedStatement, mockedResultSet, mockedActionMessageSender);
-        ActionMessage actualActionMessage = captor.getValue();
-        assertThat(actualActionMessage.getText(), containsString("Timestamp="));
-        assertThat(actualActionMessage.getText(), containsString(":: a row with ID="));
-        assertThat(actualActionMessage.getText(), containsString("10001"));
-        assertThat(actualActionMessage.getText(), containsString("has been inserted"));
-        assertThat(actualActionMessage.getChannel(), is(TEST_CHANNEL_NAME));
+        verifyNoMoreInteractions(mockedConnection, mockedStatement, mockedResultSet);
+        assertThat(actionNotificationList.size(), is(1));
+        ActionNotification actionNotification = actionNotificationList.get(0);
+        assertThat(actionNotification.getChannelName(), is(TEST_CHANNEL_NAME));
+        DbNotification dbNotification = new ObjectMapper().readValue(actionNotification.getMessage(), DbNotification.class);
+        assertThat(dbNotification.getClient().getId(), is(10001L));
+        assertThat(dbNotification.getClient().getName(), is("John Free"));
+        assertThat(dbNotification.getClient().getCity(), is("New York"));
+        assertThat(dbNotification.getClient().getAge(), is(43));
+        assertThat(dbNotification.getType(), is("insert"));
     }
 
     private PGNotification buildTestNotification(String name, String parameterAsString) {

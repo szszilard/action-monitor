@@ -1,4 +1,4 @@
-package org.sz.action.monitor.publish;
+package org.sz.action.monitor.publisher;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -12,7 +12,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-public class ActionMessageSenderImplTest {
+public class ActionMessagePublisherImplTest {
 
     private static final String TEST_MESSAGE = "testMessage";
     private static final String TEST_TOPIC_NAME = "testTopicName";
@@ -22,7 +22,7 @@ public class ActionMessageSenderImplTest {
     private MessageSendingOperations<String> messageSendingOperations;
 
     @InjectMocks
-    private ActionMessageSenderImpl actionMessageSender;
+    private ActionMessagePublisherImpl actionMessageSender;
 
     @Test
     public void actionMessageShouldBeSentSuccessfully() {

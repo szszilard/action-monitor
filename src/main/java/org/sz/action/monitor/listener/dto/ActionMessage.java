@@ -2,14 +2,26 @@ package org.sz.action.monitor.listener.dto;
 
 import java.util.Objects;
 
+/**
+ * This DTO is used when action messages are transported.
+ */
 public class ActionMessage {
 
     private String text;
     private String channel;
 
+    /**
+     * Constructor.
+     */
     public ActionMessage() {
     }
 
+    /**
+     * Constructor.
+     *
+     * @param text    text of the action message
+     * @param channel notification channel in the database
+     */
     public ActionMessage(String text, String channel) {
         this.text = text;
         this.channel = channel;

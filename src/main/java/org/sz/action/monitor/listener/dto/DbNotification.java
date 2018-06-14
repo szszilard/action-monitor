@@ -1,14 +1,26 @@
 package org.sz.action.monitor.listener.dto;
 
-public class Notification {
+/**
+ * This DTO is used when DB notifications are transported.
+ */
+public class DbNotification {
 
     private String type;
     private Client client;
 
-    public Notification() {
+    /**
+     * Constructor.
+     */
+    public DbNotification() {
     }
 
-    public Notification(String type, Client client) {
+    /**
+     * Constructor.
+     *
+     * @param type   database table action type: insert, update, delete
+     * @param client row of the client table
+     */
+    public DbNotification(String type, Client client) {
         this.type = type;
         this.client = client;
     }
@@ -31,7 +43,7 @@ public class Notification {
 
     @Override
     public String toString() {
-        return "Notification{" +
+        return "ActionNotification{" +
                 "type='" + type + '\'' +
                 ", client=" + client +
                 '}';

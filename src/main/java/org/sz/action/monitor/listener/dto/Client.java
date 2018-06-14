@@ -1,6 +1,8 @@
 package org.sz.action.monitor.listener.dto;
 
-
+/**
+ * This DTO is used when client DB table row is transported.
+ */
 public class Client {
 
     private Long id;
@@ -8,9 +10,20 @@ public class Client {
     private String city;
     private int age;
 
+    /**
+     * Constructor.
+     */
     public Client() {
     }
 
+    /**
+     * Constructor.
+     *
+     * @param id   id of the client
+     * @param name name of the client
+     * @param city city of the client
+     * @param age  age of the client
+     */
     public Client(Long id, String name, String city, int age) {
         this.id = id;
         this.name = name;
